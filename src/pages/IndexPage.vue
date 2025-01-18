@@ -4,8 +4,47 @@
       <div class="q-mb-xl">
         <q-input v-model="tempData.name" label="姓名" />
         <q-input v-model="tempData.age" label="年齡" />
-        <q-btn color="primary" class="q-mt-md">新增</q-btn>
+        <q-btn color="primary" class="q-mt-md" @click="add()">新增</q-btn>
       </div>
+
+      <q-dialog v-model="addalert">
+        <q-card>
+          <q-card-section class="q-pt-none">
+            Lorem ipsum dolor sit amet consectetur adipisicing elit. Rerum
+            repellendus sit voluptate voluptas eveniet porro. Rerum blanditiis
+            perferendis totam, ea at omnis vel numquam exercitationem aut, natus
+            minima, porro labore.
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn flat label="OK" color="primary" v-close-popup />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="edit" persistent>
+        <q-card style="min-width: 350px">
+          <q-card-section>
+            <div class="text-h6">Your name</div>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none">
+            <q-input dense v-model="tempData.name" autofocus />
+          </q-card-section>
+          <q-card-section>
+            <div class="text-h6">Your age</div>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none">
+            <q-input dense v-model="tempData.age" autofocus />
+          </q-card-section>
+
+          <q-card-actions align="right" class="text-primary">
+            <q-btn flat label="Cancel" v-close-popup @click="edit = false" />
+            <q-btn flat label="Edit" @click="apiedit" v-close-popup />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
 
       <q-table
         flat
@@ -81,6 +120,7 @@
 import axios from 'axios';
 import { QTableProps } from 'quasar';
 import { ref } from 'vue';
+import { cloneDeep } from 'lodash';
 interface btnType {
   label: string;
   icon: string;
@@ -120,12 +160,82 @@ const tableButtons = ref([
 ]);
 
 const tempData = ref({
+  id: '',
   name: '',
   age: '',
 });
-function handleClickOption(btn, data) {
-  // ...
-}
+const edit = ref(false);
+const editID = ref('');
+const handleClickOption = async (btn, data) => {
+  if (btn.status == 'edit') {
+    edit.value = true;
+    editID.value = data.id;
+  } else if (btn.status == 'delete') {
+    const id = data.id;
+    try {
+      const del = await axios.delete(
+        `https://dahua.metcfire.com.tw/api/CRUDTest/${id}`
+      );
+      if (del.status == 200) {
+        console.log('delete');
+      }
+    } catch (err) {
+      console.log('delerr:', err);
+    }
+  }
+};
+
+const apiedit = async () => {
+  edit.value = false;
+  try {
+    tempData.value.id = editID.value;
+    const res = await axios.patch(
+      'https://dahua.metcfire.com.tw/api/CRUDTest',
+      tempData.value
+    );
+    if (res.status == 200) {
+      getdata();
+      tempData.value.age = '';
+      tempData.value.id = '';
+      tempData.value.name = '';
+    }
+  } catch (err) {
+    console.log('patcherr:', err);
+  }
+};
+
+const addalert = ref(false);
+const add = async () => {
+  tempData.value.id = 'idd' + blockData.value.length + 1;
+  try {
+    const res = await axios.post(
+      'https://dahua.metcfire.com.tw/api/CRUDTest',
+      tempData.value
+    );
+    if (res.status == 200) {
+      addalert.value = true;
+    }
+  } catch (err) {
+    console.log('posterr:', err);
+  }
+};
+
+const getdata = async () => {
+  console.log('1');
+  const data = await axios.get('https://dahua.metcfire.com.tw/api/CRUDTest/a');
+  try {
+    console.log('data', data);
+    blockData.value = cloneDeep(data.data);
+    console.log('3');
+    console.log('b:', blockData.value);
+  } catch (err) {
+    console.log('getapierr:', err);
+  }
+};
+const init = () => {
+  getdata();
+};
+init();
 </script>
 
 <style lang="scss" scoped>
